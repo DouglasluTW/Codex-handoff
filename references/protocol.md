@@ -32,6 +32,8 @@ Codex 只負責搬運、搜尋、下載與整理；圖片/文字/審查由你在
 
 Switch from Lite Mode to the full protocol when two computers may coordinate on the same task, the user needs durable progress recovery, local generation tools require multiple review loops, or the task becomes long-running.
 
+Switch to Agent Mode when Codex should drive a multi-step workflow across tools and maintain explicit task state. Read `agent-loop.md` and `task-state.md` before using Agent Mode.
+
 ## Message Types
 
 - `TASK`: user-owned task definition, success criteria, and constraints.
@@ -109,3 +111,9 @@ NEXT:
 none
 END_HANDOFF
 ```
+
+## Agent Mode State
+
+In Agent Mode, pair `HANDOFF` messages with a `TASK_STATE` block. The handoff block tells collaborators what changed; the task state block tells the next agent exactly where to resume.
+
+Use `scripts/new_task_state.ps1` when available. Keep state concise and omit secrets. If task state is stale or conflicts with visible instructions, refresh it or stop before acting.

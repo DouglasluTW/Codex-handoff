@@ -1,27 +1,28 @@
 ---
 name: chatgpt-handoff
-description: Coordinate active ChatGPT web conversations through Chrome as a handoff bridge between Codex, ChatGPT, local files, Google Drive, and local generation tools such as ComfyUI. Use when the user wants Codex to take over an in-progress ChatGPT discussion, read or write the ChatGPT webpage, continue multi-step creative or research work, coordinate two computers through the same ChatGPT conversation, review generated artifacts, or run a browser-mediated workflow to completion while stopping before irreversible actions.
+description: Coordinate active ChatGPT web conversations through Chrome as a handoff bridge and controlled autopilot layer between Codex, ChatGPT, local files, Google Drive, GitHub, Gmail, and generation tools such as ComfyUI. Use when Codex should take over an in-progress ChatGPT discussion, run a role-aware Codex-ChatGPT workflow, maintain shared task state, resume or audit long-running work, review artifacts, or execute browser-mediated tasks with configurable safety policy and stop conditions.
 ---
 
 # ChatGPT Handoff
 
 ## Core Rule
 
-Treat the visible ChatGPT conversation as the shared task channel. Codex may read it, post structured updates, ask ChatGPT for critique, use local tools, and iterate until the requested artifact is done. Stop before irreversible actions: payment, public posting, deleting important files, changing account settings, or submitting forms that cannot be undone. Email is executable when the Email Rule below is satisfied.
+Treat the visible ChatGPT conversation as the shared task channel. Codex may read it, post structured updates, ask ChatGPT for critique, use local tools, and iterate until the requested artifact is done. Apply the active safety policy before risky actions. Email is executable when the Email Rule below is satisfied.
 
-Use Lite Mode for single-machine, single-task handoffs unless the user asks for multi-machine coordination, long-running recovery, or the task needs detailed cross-step traceability. Use Standard Mode when two computers may work on the same ChatGPT conversation, when the user will be away for a long time, or when local generation/tool work needs durable status handoff.
+Use Lite Mode for single-machine, single-task handoffs unless the user asks for multi-machine coordination, long-running recovery, or the task needs detailed cross-step traceability. Use Standard Mode when two computers may work on the same ChatGPT conversation, when the user will be away for a long time, or when local generation/tool work needs durable status handoff. Use Agent Mode when token budget and task clarity are sufficient for Codex to drive the loop across tools while maintaining task state, verification gates, and configurable stop rules.
 
 ## Startup
 
 1. Use the `chrome:Chrome` skill before controlling the user's Chrome browser.
 2. Claim the already-open ChatGPT tab when possible. Prefer the current visible ChatGPT conversation over opening a new one.
 3. Read the latest visible conversation state and identify the newest `TASK`, unfinished `REQUEST`, or user instruction.
-4. Choose Lite Mode or Standard Mode before posting to ChatGPT.
+4. Choose Lite Mode, Standard Mode, or Agent Mode before posting to ChatGPT.
 5. In Standard Mode, determine this machine label from the environment if possible (`COMPUTERNAME` on Windows).
 6. In Standard Mode, inspect the latest handoff blocks. If another machine has a current `CLAIM` for the same step and has not posted `DONE`, `REQUEST`, or a stale timeout note, do not duplicate the work. Post a short `STATUS` or ask the user only if the conflict cannot be resolved from the conversation.
 7. Before work starts, do a role precheck. Identify who generates the artifact, who reviews it, what Codex is allowed to do, hard stop points, and completion criteria. Ask only when these are ambiguous and materially affect the workflow.
-8. In Standard Mode, post a `CLAIM` block before doing substantial work. Use `scripts/new_handoff_message.ps1` when available.
+8. In Standard Mode or Agent Mode, post a `CLAIM` block before doing substantial work. Use `scripts/new_handoff_message.ps1` when available.
 9. When waiting for ChatGPT after a prompt, review request, or generation request, follow the ChatGPT status check rule below.
+10. In Agent Mode, create or refresh a task state block before acting. Use `scripts/new_task_state.ps1` when available.
 
 ## Role Precheck
 
@@ -77,6 +78,30 @@ Repeat until completion:
 6. Ask ChatGPT to review using explicit criteria. If ChatGPT generated the artifact in the same conversation, ask it to self-review the visible generated artifacts directly; do not re-upload the same files unless ChatGPT cannot see them. If it finds issues, ask it to regenerate only failed versions.
 7. Post `DONE` only when the artifact passes the requested acceptance checks or when a hard stop requires user approval.
 
+## Agent Mode
+
+Agent Mode is the controlled autopilot path for clear, token-supported workflows where Codex should drive progress across ChatGPT, local files, browser state, GitHub, Gmail, Drive, or generation tools.
+
+Use Agent Mode only when the objective, allowed tools, verification method, and stop conditions are clear enough to continue without guessing. If they are not clear, ask for the missing decision or fall back to Standard Mode.
+
+Follow `references/agent-loop.md` for the loop:
+
+```text
+OBSERVE -> PLAN -> ACT -> VERIFY -> REPORT -> DECIDE NEXT
+```
+
+Maintain shared state with `references/task-state.md`. Prefer `scripts/new_task_state.ps1` to print a `TASK_STATE` block before substantial actions, after verification, and before any pause or resume. Keep the visible ChatGPT conversation and the Codex thread as the primary state unless the user asks for a separate run log file.
+
+Default safety policy is conservative: ask before deletion, overwrite, cleanup, install/uninstall, public posting, payment, account setting changes, or sending user-visible messages unless the user has already authorized the exact action. The policy may be configured per task with `allow`, `ask`, `block`, or `dry_run`; user-provided policy overrides the default except where higher-priority system, developer, workspace, or local safety rules apply.
+
+Agent Mode must stop or ask when:
+
+- the next action is outside the active safety policy
+- the task state is stale, conflicting, or missing critical fields
+- verification fails twice for the same step
+- a secret, credential, payment, deletion, overwrite, public posting, or irreversible account action is involved and policy is not `allow`
+- token budget is low enough that a future agent would lack the current objective, state, artifacts, and next action
+
 ## ChatGPT Status Check
 
 When waiting for ChatGPT in either mode:
@@ -98,7 +123,7 @@ Gmail actions are executable when the user asks for email sending or draft creat
 
 ## Message Protocol
 
-Use Lite Mode without the full block format for single-machine work. Use the following Standard Mode format only for multi-machine coordination, long-running handoffs, or when a durable audit trail is needed.
+Use Lite Mode without the full block format for single-machine work. Use the following Standard Mode format for multi-machine coordination, long-running handoffs, or when a durable audit trail is needed. In Agent Mode, pair this format with `TASK_STATE` blocks from `references/task-state.md`.
 
 Use one fenced block per coordination message so both computers can parse it by eye:
 
@@ -142,8 +167,10 @@ When the task requires local image/video generation:
 - If ChatGPT cannot upload or inspect a file, use Google Drive and paste a link.
 - If two machines conflict, the latest valid `CLAIM` wins unless it is clearly stale. Post `BLOCKED` with the reason instead of overwriting work.
 - If a task reaches a hard stop, post `REQUEST` with the exact decision needed and stop.
+- If Agent Mode cannot verify progress, refresh task state and either retry once with a narrower action or stop with the exact blocker.
 
 ## Bundled Helpers
 
 - `scripts/new_handoff_message.ps1`: print a standardized handoff block for ChatGPT.
+- `scripts/new_task_state.ps1`: print a standardized Agent Mode task state block.
 - `scripts/comfyui_bridge.py`: check ComfyUI, queue workflow JSON, and poll prompt history.
