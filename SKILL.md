@@ -90,9 +90,9 @@ Follow `references/agent-loop.md` for the loop:
 OBSERVE -> PLAN -> ACT -> VERIFY -> REPORT -> DECIDE NEXT
 ```
 
-Maintain shared state with `references/task-state.md`. Prefer `scripts/new_task_state.ps1` to print a `TASK_STATE` block before substantial actions, after verification, and before any pause or resume. Keep the visible ChatGPT conversation and the Codex thread as the primary state unless the user asks for a separate run log file.
+Maintain shared state with `references/task-state.md`. Prefer `scripts/new_task_state.ps1` to print a `TASK_STATE` block before substantial actions, after verification, and before any pause or resume. Keep the visible ChatGPT conversation and the Codex thread as the primary state unless the user asks for a separate run log file. When a durable resume trail is useful, follow `references/run-log.md` and use `scripts/new_run_log_entry.ps1` to print a compact log entry.
 
-Default safety policy is conservative: ask before deletion, overwrite, cleanup, install/uninstall, public posting, payment, account setting changes, or sending user-visible messages unless the user has already authorized the exact action. The policy may be configured per task with `allow`, `ask`, `block`, or `dry_run`; user-provided policy overrides the default except where higher-priority system, developer, workspace, or local safety rules apply.
+Default safety policy is conservative: ask before deletion, overwrite, cleanup, install/uninstall, public posting, payment, account setting changes, or sending user-visible messages unless the user has already authorized the exact action. The policy may be configured per task with `allow`, `ask`, `block`, or `dry_run`; read `references/safety-policy.md` when a task needs explicit policy choices. User-provided policy overrides the default except where higher-priority system, developer, workspace, or local safety rules apply.
 
 Agent Mode must stop or ask when:
 
@@ -173,4 +173,5 @@ When the task requires local image/video generation:
 
 - `scripts/new_handoff_message.ps1`: print a standardized handoff block for ChatGPT.
 - `scripts/new_task_state.ps1`: print a standardized Agent Mode task state block.
+- `scripts/new_run_log_entry.ps1`: print a standardized Agent Mode resume log entry.
 - `scripts/comfyui_bridge.py`: check ComfyUI, queue workflow JSON, and poll prompt history.

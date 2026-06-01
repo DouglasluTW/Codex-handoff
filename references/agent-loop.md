@@ -45,6 +45,8 @@ Allowed values:
 
 The default policy is conservative. User-provided policy can loosen or tighten it, but higher-priority system, developer, workspace, and local safety rules always win.
 
+For policy-specific guidance, read `safety-policy.md`.
+
 ## Verification Gates
 
 Before moving to the next step, verify the result that matters for the task:
@@ -71,3 +73,9 @@ Before a long pause, context transition, or low-token moment, refresh `TASK_STAT
 - active safety policy
 
 If this state cannot be made clear, stop and ask for input rather than continuing from memory.
+
+## Run Log
+
+Use a run log when the workflow is long-running, likely to resume later, or has multiple artifacts and review loops. The log can stay in the Codex thread, be pasted into ChatGPT, or be written to a user-approved file.
+
+Use `scripts/new_run_log_entry.ps1` to print a compact entry after meaningful progress, before a pause, and after a resume. Do not write a log file unless the user asks for one or has approved the destination.
