@@ -1,0 +1,3 @@
+display_name: ChatGPT Handoff
+short_description: Bridge Codex and ChatGPT web handoffs.
+default_prompt: Use the current Chrome ChatGPT conversation as the task handoff channel, claim the next open step, coordinate with ChatGPT, and complete the requested artifact safely.
