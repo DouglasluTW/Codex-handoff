@@ -13,6 +13,18 @@ param(
     [ValidateSet('planned','in_progress','waiting','blocked','complete')]
     [string]$Status = 'in_progress',
 
+    [string[]]$RoleSplit = @(),
+
+    [string]$ChatGPTCheckpoint = 'none',
+
+    [string]$LastChatGPTUserInstruction = 'none',
+
+    [ValidateSet('Codex','ChatGPT','Mobile','Unknown')]
+    [string]$InstructionSource = 'Unknown',
+
+    [ValidateSet('none','new','accepted','merged','blocked','superseded')]
+    [string]$InstructionStatus = 'none',
+
     [string[]]$Artifacts = @(),
 
     [string[]]$Verification = @(),
@@ -71,6 +83,12 @@ Write-Output "MODE: $Mode"
 Write-Output "CURRENT_STEP: $CurrentStep"
 Write-Output "OWNER: $Owner"
 Write-Output "STATUS: $Status"
+Write-Output 'ROLE_SPLIT:'
+Write-List -Items $RoleSplit
+Write-Output "CHATGPT_CHECKPOINT: $ChatGPTCheckpoint"
+Write-Output "LAST_CHATGPT_USER_INSTRUCTION: $LastChatGPTUserInstruction"
+Write-Output "INSTRUCTION_SOURCE: $InstructionSource"
+Write-Output "INSTRUCTION_STATUS: $InstructionStatus"
 Write-Output 'ARTIFACTS:'
 Write-List -Items $Artifacts
 Write-Output 'VERIFICATION:'

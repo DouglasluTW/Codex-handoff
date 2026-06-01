@@ -17,15 +17,18 @@ Use Lite Mode for single-machine, single-task handoffs unless the user asks for 
 2. Claim the already-open ChatGPT tab when possible. Prefer the current visible ChatGPT conversation over opening a new one.
 3. Read the latest visible conversation state and identify the newest `TASK`, unfinished `REQUEST`, or user instruction.
 4. Choose Lite Mode, Standard Mode, or Agent Mode before posting to ChatGPT.
-5. In Standard Mode, determine this machine label from the environment if possible (`COMPUTERNAME` on Windows).
-6. In Standard Mode, inspect the latest handoff blocks. If another machine has a current `CLAIM` for the same step and has not posted `DONE`, `REQUEST`, or a stale timeout note, do not duplicate the work. Post a short `STATUS` or ask the user only if the conflict cannot be resolved from the conversation.
-7. Before work starts, do a role precheck. Identify who generates the artifact, who reviews it, what Codex is allowed to do, hard stop points, and completion criteria. Ask only when these are ambiguous and materially affect the workflow.
-8. In Standard Mode or Agent Mode, post a `CLAIM` block before doing substantial work. Use `scripts/new_handoff_message.ps1` when available.
-9. When waiting for ChatGPT after a prompt, review request, or generation request, follow the ChatGPT status check rule below.
-10. In Agent Mode, create or refresh a task state block before acting. Use `scripts/new_task_state.ps1` when available.
+5. Before substantial work that involves ChatGPT, get or refresh a role split. Ask ChatGPT to divide responsibilities first, then verify the split against Codex's local capabilities and the active safety policy. Use `scripts/new_role_split_prompt.ps1` when available.
+6. In Agent Mode, record the current ChatGPT checkpoint and watch for newer user messages. Treat newer user messages as new instructions according to `references/chatgpt-instructions.md`.
+7. In Standard Mode, determine this machine label from the environment if possible (`COMPUTERNAME` on Windows).
+8. In Standard Mode, inspect the latest handoff blocks. If another machine has a current `CLAIM` for the same step and has not posted `DONE`, `REQUEST`, or a stale timeout note, do not duplicate the work. Post a short `STATUS` or ask the user only if the conflict cannot be resolved from the conversation.
+9. Before work starts, do a role precheck. Identify who generates the artifact, who reviews it, what Codex is allowed to do, hard stop points, and completion criteria. Ask only when these are ambiguous and materially affect the workflow.
+10. In Standard Mode or Agent Mode, post a `CLAIM` block before doing substantial work. Use `scripts/new_handoff_message.ps1` when available.
+11. When waiting for ChatGPT after a prompt, review request, or generation request, follow the ChatGPT status check rule below.
+12. In Agent Mode, create or refresh a task state block before acting. Use `scripts/new_task_state.ps1` when available.
 
 ## Role Precheck
 
+- When ChatGPT is available for coordination, ask ChatGPT to propose the role split first. Codex then accepts, narrows, or blocks the split based on local executability, verification gates, and the active safety policy. Read `references/role-split.md` for the exact workflow.
 - If the user says ChatGPT should generate, Codex must not replace that with local HTML/CSS, built-in image generation, ComfyUI, or other local generation. Codex only prompts, researches, transports, downloads, renames, packages, and reports.
 - If the user says ComfyUI should generate, Codex may control ComfyUI but should use ChatGPT for prompt planning or review when requested.
 - If the generator is not specified, infer from the active ChatGPT conversation and user wording. If multiple generators are plausible, ask before generating.
@@ -92,6 +95,8 @@ OBSERVE -> PLAN -> ACT -> VERIFY -> REPORT -> DECIDE NEXT
 
 Maintain shared state with `references/task-state.md`. Prefer `scripts/new_task_state.ps1` to print a `TASK_STATE` block before substantial actions, after verification, and before any pause or resume. Keep the visible ChatGPT conversation and the Codex thread as the primary state unless the user asks for a separate run log file. When a durable resume trail is useful, follow `references/run-log.md` and use `scripts/new_run_log_entry.ps1` to print a compact log entry.
 
+Before acting on ChatGPT-connected work, follow `references/role-split.md`: ChatGPT proposes the division of labor, Codex checks it, and the accepted split becomes part of task state. During every observe or polling step, follow `references/chatgpt-instructions.md`: if a user message appears after the saved ChatGPT checkpoint, treat it as a new instruction and re-plan before continuing.
+
 Default safety policy is conservative: ask before deletion, overwrite, cleanup, install/uninstall, public posting, payment, account setting changes, or sending user-visible messages unless the user has already authorized the exact action. The policy may be configured per task with `allow`, `ask`, `block`, or `dry_run`; read `references/safety-policy.md` when a task needs explicit policy choices. User-provided policy overrides the default except where higher-priority system, developer, workspace, or local safety rules apply.
 
 Agent Mode must stop or ask when:
@@ -108,7 +113,7 @@ When waiting for ChatGPT in either mode:
 
 1. Save the latest visible conversation state as the checkpoint.
 2. Re-check the visible ChatGPT tab every 10 minutes.
-3. Treat new assistant text, changed generation/review status, new artifacts, an approval phrase, or a visible error as an update.
+3. Treat new assistant text, a new user message, changed generation/review status, new artifacts, an approval phrase, or a visible error as an update.
 4. If there is no update compared with the previous checkpoint, stop automatically and report the no-update stop locally. In Standard Mode, post `BLOCKED` only when another machine needs to see the stop reason; in Lite Mode, keep the ChatGPT thread clean.
 5. Do not continue periodic checks after a no-update stop unless the user explicitly asks to resume.
 
@@ -168,10 +173,12 @@ When the task requires local image/video generation:
 - If two machines conflict, the latest valid `CLAIM` wins unless it is clearly stale. Post `BLOCKED` with the reason instead of overwriting work.
 - If a task reaches a hard stop, post `REQUEST` with the exact decision needed and stop.
 - If Agent Mode cannot verify progress, refresh task state and either retry once with a narrower action or stop with the exact blocker.
+- If a newer ChatGPT user instruction appears and Codex cannot classify whether it should be accepted, merged, blocked, or treated as superseding the current task, stop and report the exact instruction that needs user confirmation without executing it.
 
 ## Bundled Helpers
 
 - `scripts/new_handoff_message.ps1`: print a standardized handoff block for ChatGPT.
+- `scripts/new_role_split_prompt.ps1`: print a prompt that asks ChatGPT to propose a role split.
 - `scripts/new_task_state.ps1`: print a standardized Agent Mode task state block.
 - `scripts/new_run_log_entry.ps1`: print a standardized Agent Mode resume log entry.
 - `scripts/comfyui_bridge.py`: check ComfyUI, queue workflow JSON, and poll prompt history.

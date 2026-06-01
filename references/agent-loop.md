@@ -4,12 +4,12 @@ Use Agent Mode when Codex has enough context, token budget, and permission to dr
 
 ## Loop
 
-1. OBSERVE: read the latest ChatGPT state, local state, visible artifacts, prior handoff blocks, and current `TASK_STATE`.
-2. PLAN: choose one narrow next action with an expected verification result.
+1. OBSERVE: read the latest ChatGPT state, check for user messages newer than the saved checkpoint, local state, visible artifacts, prior handoff blocks, and current `TASK_STATE`.
+2. PLAN: if a newer ChatGPT user instruction exists, classify it and refresh role split before choosing one narrow next action with an expected verification result.
 3. ACT: use the least risky tool that can move the task forward.
 4. VERIFY: check the expected result before continuing.
 5. REPORT: update ChatGPT or Codex with the result, artifacts, and any caveats.
-6. DECIDE NEXT: continue, retry once with a narrower action, ask for input, or stop.
+6. DECIDE NEXT: continue, retry once with a narrower action, ask for input, stop, or supersede the current step if a newer instruction replaces it.
 
 ## Mode Selection
 
@@ -18,6 +18,14 @@ Use Agent Mode when Codex has enough context, token budget, and permission to dr
 - Use Agent Mode when Codex should keep driving across multiple steps and tools.
 
 Agent Mode does not mean unlimited autonomy. It means Codex can continue while the objective, allowed tools, verification gates, and active safety policy remain clear.
+
+## Role Split And New Instructions
+
+Before ChatGPT-connected work, ask ChatGPT to propose a role split and record the accepted split in task state. Read `role-split.md`.
+
+During observe and polling, treat newer ChatGPT user messages as new instructions. Read `chatgpt-instructions.md`.
+
+If a new instruction is accepted, merged, blocked, or supersedes the current task, update task state before acting. If Codex cannot classify the instruction safely, stop and ask for confirmation.
 
 ## Safety Policy
 

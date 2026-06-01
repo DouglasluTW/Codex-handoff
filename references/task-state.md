@@ -11,6 +11,12 @@ MODE: LITE|STANDARD|AGENT
 CURRENT_STEP: current narrow step
 OWNER: Codex|ChatGPT|User|Other
 STATUS: planned|in_progress|waiting|blocked|complete
+ROLE_SPLIT:
+- accepted role split or none
+CHATGPT_CHECKPOINT: visible state marker or none
+LAST_CHATGPT_USER_INSTRUCTION: newest user instruction after checkpoint or none
+INSTRUCTION_SOURCE: Codex|ChatGPT|Mobile|Unknown
+INSTRUCTION_STATUS: none|new|accepted|merged|blocked|superseded
 ARTIFACTS:
 - local path, URL, Drive link, generated file, or none
 VERIFICATION:
@@ -32,6 +38,7 @@ END_TASK_STATE
 - Use `none` when a list is empty.
 - Treat missing `OBJECTIVE`, `CURRENT_STEP`, `NEXT_ACTION`, or `STOP_CONDITIONS` as a reason to pause before acting.
 - Update the block before substantial Agent Mode actions, after verification, and before a pause or resume.
+- Update role split and instruction fields before acting on a ChatGPT-connected task.
 - Do not put secrets, tokens, passwords, private keys, or payment data in task state. Refer to their existence generically instead.
 - If task state conflicts with visible ChatGPT instructions or user instructions, follow the newest higher-priority instruction and record the conflict as a blocker.
 
@@ -44,6 +51,13 @@ MODE: AGENT
 CURRENT_STEP: Validate edited skill files.
 OWNER: Codex
 STATUS: in_progress
+ROLE_SPLIT:
+- ChatGPT reviews scope and acceptance criteria
+- Codex edits files and runs validation
+CHATGPT_CHECKPOINT: latest visible message before validation
+LAST_CHATGPT_USER_INSTRUCTION: none
+INSTRUCTION_SOURCE: Unknown
+INSTRUCTION_STATUS: none
 ARTIFACTS:
 - C:\Users\...\Codex-handoff\SKILL.md
 VERIFICATION:
